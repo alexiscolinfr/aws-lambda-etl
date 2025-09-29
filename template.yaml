@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ETL Lambda functions
+
+  Process data from different sources to feed the data team
+
+Globals:
+  Function:
+    Architectures:
+      - arm64
+    Runtime: python3.12
+    Timeout: 300
+    Environment:
+      Variables:
+        DWH_HOST: dwh.us-east-1.rds.amazonaws.com
+        DWH_PORT: 3306
+        DWH_USER: dwh_user
+        DWH_PASSWORD: !Sub "{{resolve:secretsmanager:aws-lambda-etl:SecretString:dwh_password}}"
+        DWH_DATABASE: dwh
+
+        ERP_HOST: erp.us-east-1.rds.amazonaws.com
+        ERP_PORT: 3306
+        ERP_USER: erp_user
+        ERP_PASSWORD: !Sub "{{resolve:secretsmanager:aws-lambda-etl:SecretString:erp_password}}"
+        ERP_DATABASE: erp
+
+Resources:
+
+  # ================================
+  # Dimension table pipes
+  # ================================
+
+  DimDatePipe:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src
+      Handler: pipes.dimensions.rpd_date.handle
+      MemorySize: 512
+      Timeout: 300
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+      VpcConfig:
+        SubnetIds:
+          - subnet-a123a123
+          - subnet-b456b456
+          - subnet-c789c789
+        SecurityGroupIds:
+          - sg-0123456789abcdef0
+
+  # ================================
+  # Fact table pipes
+  # ================================
+
+  FactInventoryPipe:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src
+      Handler: pipes.facts.fact_inventory_snapshot.handle
+      MemorySize: 512
+      Timeout: 600
+      Events:
+        RateSchedule:
+          Type: ScheduleV2
+          Properties:
+            Name: schedule-fact_inventory_snapshot
+            ScheduleExpression: cron(0 6 * * ? *)
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+      VpcConfig:
+        SubnetIds:
+          - subnet-a123a123
+          - subnet-b456b456
+          - subnet-c789c789
+        SecurityGroupIds:
+          - sg-0123456789abcdef0
+
+  # ================================
+  # Data Extraction pipes
+  # ================================
+
+  DwhToS3Extract:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src
+      Handler: pipes.data_extraction.dwh_to_s3_extract.handle
+      MemorySize: 1024
+      Timeout: 300
+      Events:
+        RateSchedule:
+          Type: ScheduleV2
+          Properties:
+            Name: schedule-dwh_to_s3_extract
+            ScheduleExpression: cron(0 4 * * ? *)
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:DeleteObject
+                - s3:ListBucket
+              Resource:
+                - arn:aws:s3:::dwh-extracts
+                - arn:aws:s3:::dwh-extracts/*
+      VpcConfig:
+        SubnetIds:
+          - subnet-a123a123
+          - subnet-b456b456
+          - subnet-c789c789
+        SecurityGroupIds:
+          - sg-0123456789abcdef0

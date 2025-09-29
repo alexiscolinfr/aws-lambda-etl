@@ -1,0 +1,9 @@
+{
+  "Parameters": {
+    "DWH_HOST": "localhost",
+    "DWH_PORT": "3306",
+    "DWH_USER": "db_user",
+    "DWH_PASSWORD": "db_password",
+    "DWH_DATABASE": "db_name"
+  }
+}

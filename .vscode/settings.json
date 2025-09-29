@@ -1,0 +1,22 @@
+{
+  "python.terminal.activateEnvironment": true,
+  "cSpell.words": [
+    "chunksize",
+    "dataframe",
+    "dotenv",
+    "dtype",
+    "fillna",
+    "getsizeof",
+    "isin",
+    "isna",
+    "iterrows",
+    "notna",
+    "postalcode",
+    "pulumi",
+    "relativedelta",
+    "sqlalchemy",
+    "titlecase",
+    "venv",
+    "virtualenv"
+  ]
+}
