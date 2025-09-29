@@ -15,8 +15,6 @@ flowchart TB
         extract[Pipe.__extract]
         transform[Pipe.__transform]
         load[Pipe.__load]
-        post[Pipe.__post]
-        indexes[Pipe.__create_indexes]
     end
 
     schedule -- event --> pipe
@@ -26,9 +24,6 @@ flowchart TB
     extract -- raw data --> transform
     transform -- transformed data --> load
     load -- insert --> dwh
-    pipe --> post
-    post --> indexes
-    indexes -- alter table --> dwh
 ```
 
 ## Prerequisites
