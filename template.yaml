@@ -13,13 +13,13 @@ Globals:
     Timeout: 300
     Environment:
       Variables:
-        DWH_HOST: dwh.us-east-1.rds.amazonaws.com
+        DWH_HOST: dwh.region.rds.amazonaws.com
         DWH_PORT: 3306
         DWH_USER: dwh_user
         DWH_PASSWORD: !Sub "{{resolve:secretsmanager:aws-lambda-etl:SecretString:dwh_password}}"
         DWH_DATABASE: dwh
 
-        ERP_HOST: erp.us-east-1.rds.amazonaws.com
+        ERP_HOST: erp.region.rds.amazonaws.com
         ERP_PORT: 3306
         ERP_USER: erp_user
         ERP_PASSWORD: !Sub "{{resolve:secretsmanager:aws-lambda-etl:SecretString:erp_password}}"

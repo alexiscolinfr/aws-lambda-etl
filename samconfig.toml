@@ -1,0 +1,9 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "aws-lambda-etl"
+s3_bucket = "aws-sam-cli-source-bucket"
+s3_prefix = "aws-lambda-etl"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"

@@ -1,29 +1,38 @@
-# Reporting pipeline
+# AWS Lambda ETL
 
-Collection of data ETL pipelines as lambda functions
+This repository implements a small, opinionated framework for building and running ETL pipes — modular extraction, transformation and load units that can run locally, in CI, or as AWS Lambda functions.
+
+The core abstraction is the Pipe base class. Concrete pipes implement only a few methods, while the base class handles lifecycle, logging, connection management and standard loading behaviors.
 
 ## Architecture overview
 
 ```mermaid
 flowchart TB
-    schedule{{Schedule trigger}}
-    api{{API gateway}}
-    dwh[(Data Warehouse)]
+    schedule{{"Schedule trigger"}}
+    api{{"API gateway"}}
+    dwh[("DWH")]
+    erp[("ERP")]
 
-    subgraph Pipe lambda function
-        pipe[Pipe.__call]
-        extract[Pipe.__extract]
-        transform[Pipe.__transform]
-        load[Pipe.__load]
+    subgraph "Pipe lambda function"
+        pipe["Pipe.\_\_call\_\_()"]
+        extract["Pipe.__extract()"]
+        transform["Pipe.__transform()"]
+        load["Pipe.__load()"]
     end
 
-    schedule -- event --> pipe
-    api -- event --> pipe
+    subgraph "S3 bucket"
+        file@{shape: doc, label: "CSV file"}
+    end
+
+    schedule -. event .-> pipe
+    api -. event .-> pipe
     pipe -- parameters --> extract
+    erp -- query --> extract
     dwh -- query --> extract
     extract -- raw data --> transform
     transform -- transformed data --> load
     load -- insert --> dwh
+    load -- insert --> file
 ```
 
 ## Prerequisites
@@ -56,7 +65,7 @@ sam build
 # 2. Invoke locally
 sam local invoke MyPipe
 # 3. Run as an API endpoint
-sam local start-api --env-vars scripts/local.json
+sam local start-api --env-vars scripts/sam_local_env.json
 ```
 
 Bear in mind that you need to rebuild anytime there's a code change (`start-api` supports hot reloading so doesn't need to be restarted every time)
@@ -69,38 +78,37 @@ TODO add curl example and postman collection
 
 ### Database configurations
 
-Database connexions are configured the `CONNEXIONS` global variable from 'common.config'.
-Each connexion is a instance of the `common.database.Connexion` dataclass.
+Database connections are configured in the `CONNECTIONS` global variable from `src.common.config`.
+Each connection is a instance of the `common.database.Connection` dataclass.
 Default values should be provided and should be the values for local development.
 
 ### Pipe definition
 
-Each pipe should be a class inheriting from the `common.pipe.Pipe` base class.
+Each pipe should be a class inheriting from the `src.common.pipe.Pipe` base class.
 That base class provides a lot of the boilerplate for extracting and loading the data as well as basic logging.
 When writing a pipe, you'll mostly be overriding the static and/or abstract methods of the base class as detailed below.
 See docstring for more details on how each method work.
 
-#### Required methods
+#### Required
 
 The following methods must be defined in each pipe
 
-- `table`: table where transformed data will be loaded
-- `extract`: query the data
+- `extract`: define how to extract data using SQL queries
 
-#### Optional methods
+#### Optional
 
-- `schema`: define a schema for transformed data
-- `indexes`: define indexes for transformed data
-- `connexion`: define connexion for loading
-- `loading_method`: define how to load the data in the output table
+- `output_destination`: define the destination of the output (database or S3 bucket)
+- `schema`: define a schema for transformed data (Table or FlatFile)
+- `connection`: define connection for loading data, if output destination is a database table
+- `loading_method`: define how to load the data, if output destination is a database table
 - `transform`: define how to transform the data
 
 ### Querying a database
 
-It is important to use `with` clauses when querying the database to avoid leaving open connexions (for instance in `extract` or `load` methods)
+It is important to use `with` clauses when querying the database to avoid leaving open connections (for instance in `extract` or `load` methods)
 
 ```python
-with MySQL(CONNEXIONS["connexion_name"]) as db:
+with MySQL(CONNECTIONS["connection_name"]) as db:
     db.execute(text("""-- sql
             SELECT * FROM table_name
         """))
