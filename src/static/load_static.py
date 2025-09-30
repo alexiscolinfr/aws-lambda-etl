@@ -4,7 +4,7 @@ import os
 import dotenv
 from sqlalchemy import text
 
-from common.database import Connexion, Database
+from common.database import Connection, Database
 
 environments = ["local"]
 files = ["log/schema.sql"]
@@ -12,7 +12,7 @@ files = ["log/schema.sql"]
 
 def load_table(environment: str):
     dotenv.load_dotenv(f"src/static/.env.{environment}")
-    connexion = Connexion(
+    connection = Connection(
         host=os.environ.get("DWH_HOST"),
         port=os.environ.get("DWH_PORT"),
         user=os.environ.get("DWH_USER"),
@@ -26,7 +26,7 @@ def load_table(environment: str):
         with open(path) as queriesFile:
             queries = queriesFile.read().split(";")
             for q in queries:
-                with Database(connexion) as db:
+                with Database(connection) as db:
                     print(q)
                     db.execute(text(q))
 

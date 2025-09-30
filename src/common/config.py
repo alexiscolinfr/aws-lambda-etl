@@ -3,12 +3,12 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import MetaData
 
-from common.database import Connexion, DatabaseSystem
+from common.database import Connection, DatabaseSystem
 
 load_dotenv()
 
-CONNEXIONS = {
-    "data_warehouse": Connexion(
+CONNECTIONS = {
+    "data_warehouse": Connection(
         system=DatabaseSystem.MYSQL,
         host=os.getenv("DWH_HOST", "localhost"),
         port=int(os.getenv("DWH_PORT", "3306")),
@@ -17,7 +17,7 @@ CONNEXIONS = {
         database=os.getenv("DWH_DATABASE", "db_name"),
         metadata=MetaData(),
     ),
-    "erp": Connexion(
+    "erp": Connection(
         system=DatabaseSystem.MYSQL,
         host=os.getenv("ERP_HOST", "localhost"),
         port=int(os.getenv("ERP_PORT", "3306")),

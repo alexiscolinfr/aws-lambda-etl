@@ -6,7 +6,7 @@ from pandas import DataFrame, Timedelta, date_range
 from sqlalchemy import Column, Date, Table
 from sqlalchemy.types import BigInteger, Integer, String
 
-from common.config import CONNEXIONS
+from common.config import CONNECTIONS
 from common.enums.loading_method import LoadingMethod
 from common.enums.output_destination import OutputDestination
 from common.pipe import Pipe
@@ -21,11 +21,11 @@ class RPDDateParameters:
 class RPDDate(Pipe):
     parameter_class = RPDDateParameters
     output_destination = OutputDestination.DATABASE
-    connexion = CONNEXIONS["dwh"]
+    connection = CONNECTIONS["data_warehouse"]
     loading_method = LoadingMethod.DROP_INSERT
     schema = Table(
         "dim_date",
-        connexion.metadata,
+        connection.metadata,
         Column("id", Integer, primary_key=True, autoincrement=False),
         Column("date", Date, index=True, nullable=False),
         Column("day_num", Integer, nullable=False, index=True),

@@ -8,7 +8,7 @@ from sqlalchemy import Column, Table
 from sqlalchemy.dialects.mysql import DECIMAL, INTEGER, SMALLINT, TINYINT
 from sqlalchemy.types import DateTime
 
-from common.config import CONNEXIONS
+from common.config import CONNECTIONS
 from common.database import Database
 from common.enums.loading_method import LoadingMethod
 from common.enums.output_destination import OutputDestination
@@ -23,11 +23,11 @@ class FactInventorySnapshotParameters:
 class FactInventorySnapshot(Pipe):
     parameter_class = FactInventorySnapshotParameters
     output_destination = OutputDestination.DATABASE
-    connexion = CONNEXIONS["dwh"]
+    connection = CONNECTIONS["data_warehouse"]
     loading_method = LoadingMethod.INSERT
     schema = Table(
         "fact_inventory",
-        connexion.metadata,
+        connection.metadata,
         Column("date_id", INTEGER(unsigned=True), primary_key=True),
         Column("product_id", INTEGER(unsigned=True), primary_key=True, index=True),
         Column("warehouse_id", TINYINT(unsigned=True), primary_key=True),
@@ -103,7 +103,7 @@ class FactInventorySnapshot(Pipe):
                 product_prices pp
         """
 
-        with Database(CONNEXIONS["erp_read"]) as erp_db:
+        with Database(CONNECTIONS["erp_read"]) as erp_db:
             df_stock = read_sql(
                 stock_query,
                 erp_db,

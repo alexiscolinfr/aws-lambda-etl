@@ -4,7 +4,7 @@ from typing import Dict
 
 from pandas import DataFrame, merge, read_sql
 
-from common.config import CONNEXIONS
+from common.config import CONNECTIONS
 from common.database import Database
 from common.enums.output_destination import OutputDestination
 from common.flat_file import Column, FlatFile
@@ -72,7 +72,7 @@ class DWHToS3Extract(Pipe):
                 DATE(cp.order_date) BETWEEN %(min_date)s AND %(max_date)s
         """
 
-        with Database(CONNEXIONS["dwh"]) as db:
+        with Database(CONNECTIONS["data_warehouse"]) as db:
 
             return {
                 "sales": read_sql(

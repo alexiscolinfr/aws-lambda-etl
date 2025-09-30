@@ -12,8 +12,8 @@ from aws_lambda_typing import events
 from pandas import NA, DataFrame
 from sqlalchemy import Table, text
 
-from common.config import CONNEXIONS
-from common.database import Connexion, Database
+from common.config import CONNECTIONS
+from common.database import Connection, Database
 from common.enums.loading_method import LoadingMethod
 from common.enums.output_destination import OutputDestination
 from common.enums.status import Status
@@ -36,7 +36,7 @@ class Pipe(ABC):
     schema: FlatFile | Table
 
     # For database output
-    connexion: Optional[Connexion] = None
+    connection: Optional[Connection] = None
     loading_method: Optional[LoadingMethod] = None
 
     def __init__(self, debug: bool = False) -> None:
@@ -97,7 +97,7 @@ class Pipe(ABC):
     @staticmethod
     def load_to_db(
         data: DataFrame,
-        connexion: Connexion,
+        connection: Connection,
         table: Table,
         loading_method: LoadingMethod,
     ) -> None:
@@ -106,7 +106,7 @@ class Pipe(ABC):
         Default implementation load the transformed data to the table defined in the `table` method
         """
 
-        with Database(connexion) as db:
+        with Database(connection) as db:
             match loading_method:
                 case LoadingMethod.DROP_INSERT:
                     table.drop(db, checkfirst=True)
@@ -199,7 +199,7 @@ class Pipe(ABC):
             case OutputDestination.DATABASE:
                 self.__class__.load_to_db(
                     data,
-                    self.connexion,
+                    self.connection,
                     self.schema,
                     self.loading_method,
                 )
@@ -233,9 +233,7 @@ class Pipe(ABC):
 
     def __clean_string(self, data: DataFrame) -> DataFrame:
         """Cleans string columns by removing leading/trailing spaces and replacing empty strings with NA."""
-        obj_cols = data.select_dtypes("object").columns.drop(
-            "embedding", errors="ignore"
-        )
+        obj_cols = data.select_dtypes("object").columns
         data.loc[:, obj_cols] = data.loc[:, obj_cols].apply(
             lambda s: s.astype(str)
             .str.strip()
@@ -267,11 +265,11 @@ class Pipe(ABC):
         match self.output_destination:
             case OutputDestination.DATABASE:
                 try:
-                    with Database(self.connexion) as db:
+                    with Database(self.connection) as db:
                         db.exec_driver_sql("SELECT 1")
                 except Exception as e:
                     raise ConnectionError(
-                        f"Cannot connect to database {self.connexion.name}: {e}"
+                        f"Cannot connect to database {self.connection.name}: {e}"
                     )
             case OutputDestination.S3:
                 s3 = boto3.client("s3")
@@ -290,7 +288,7 @@ class Pipe(ABC):
         data.to_csv(Path(".output", f"{self._path}.csv"))
 
     def __log(self, status: Status, error: str | None) -> None:
-        with Database(CONNEXIONS["dwh"]) as db:
+        with Database(CONNECTIONS["data_warehouse"]) as db:
             db.exec_driver_sql(
                 """-- sql
                     INSERT INTO pipeline_logs (pipe_name, manual_trigger, status_id, duration, extracted_rows, dataframes_memory, loaded_rows, uuid, error)

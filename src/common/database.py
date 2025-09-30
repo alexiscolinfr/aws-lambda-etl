@@ -12,7 +12,7 @@ class DatabaseSystem(Enum):
 
 
 @dataclass
-class Connexion:
+class Connection:
     host: str
     port: int
     user: str
@@ -33,9 +33,9 @@ class Connexion:
 
 
 class Database(object):
-    def __init__(self, connexion: Connexion):
+    def __init__(self, connection: Connection):
         self.db = create_engine(
-            connexion.to_url(), connect_args={"connect_timeout": 300}
+            connection.to_url(), connect_args={"connect_timeout": 300}
         ).connect()
 
     def __enter__(self):
