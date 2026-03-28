@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Dict
 
 from pandas import DataFrame, Timedelta, date_range
 from sqlalchemy import Column, Date, Table
@@ -43,7 +42,7 @@ class RPDDate(Pipe):
     )
 
     @staticmethod
-    def extract(parameters: RPDDateParameters) -> Dict[str, DataFrame]:
+    def extract(parameters: RPDDateParameters) -> dict[str, DataFrame]:
 
         dates_df = DataFrame(
             {"date": date_range(parameters.start_date, parameters.end_date)}

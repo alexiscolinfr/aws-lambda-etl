@@ -1,9 +1,9 @@
-from re import compile, escape
-from typing import Dict, List
+from re import compile as re_compile
+from re import escape
 
-import pytz
 from numpy import busday_count
 from pandas import NA, DateOffset, Series, Timestamp, isna
+from pytz import timezone
 
 
 class TransformationTools:
@@ -11,9 +11,11 @@ class TransformationTools:
 
     @staticmethod
     def replace_with_abbreviations(
-        series: Series, abbr_dicts_list: List[Dict[str, str]]
+        series: Series, abbr_dicts_list: list[dict[str, str]]
     ) -> Series:
-        """Replace values in a pandas Series based on a list of abbreviation dictionaries."""
+        """
+        Replace values in a pandas Series based on a list of abbreviation dictionaries.
+        """
         merged_dict = {}
         for d in abbr_dicts_list:
             merged_dict.update(d)
@@ -32,10 +34,10 @@ class TransformationTools:
     @staticmethod
     def clean_and_titlecase(series: Series) -> Series:
         """Clean and title-case a pandas Series."""
-        NAME_CLEAN_REGEX = r"[^a-zA-ZÀ-ÖØ-öø-ÿ0-9\-\'\./ ]+"
+        name_clean_regex = r"[^a-zA-ZÀ-ÖØ-öø-ÿ0-9\-\'\./ ]+"
 
         cleaned = (
-            series.fillna("").str.strip().str.replace(NAME_CLEAN_REGEX, "", regex=True)
+            series.fillna("").str.strip().str.replace(name_clean_regex, "", regex=True)
         )
 
         def process_word(word):
@@ -50,9 +52,12 @@ class TransformationTools:
         )
 
     @staticmethod
-    def working_minutes(start: Timestamp, end: Timestamp, tz: str = "UTC") -> int:
+    def working_minutes(
+        start: Timestamp, end: Timestamp, tz: str = "UTC", working_days: int = 5
+    ) -> int:
         """
-        Calculate the number of working (business) minutes between two timestamps, after normalizing both to the same timezone.
+        Calculate the number of working (business) minutes between two timestamps,
+        after normalizing both to the same timezone.
 
         For the first and last days (if they are weekdays), only the portion of the
         day between the given times is counted. If start and end fall on the same day
@@ -79,8 +84,8 @@ class TransformationTools:
         if isna(start) or isna(end):
             return None
 
-        # Ensure both timestamps are timezone‐aware in the same zone:
-        target_tz = pytz.timezone(tz)
+        # Ensure both timestamps are timezone-aware in the same zone:
+        target_tz = timezone(tz)
 
         if start.tzinfo is None:
             start = start.tz_localize(
@@ -90,9 +95,7 @@ class TransformationTools:
             start = start.tz_convert(target_tz)
 
         if end.tzinfo is None:
-            end = end.tz_localize(
-                target_tz, ambiguous=True, nonexistent="shift_forward"
-            )
+            end = end.tz_localize(target_tz, ambiguous=True, nonexistent="shift_forward")
         else:
             end = end.tz_convert(target_tz)
 
@@ -104,20 +107,24 @@ class TransformationTools:
         end_midnight = end.normalize()
 
         if start_midnight == end_midnight:
-            return int((end - start).total_seconds() / 60) if start.weekday() < 5 else 0
+            return (
+                int((end - start).total_seconds() / 60)
+                if start.weekday() < working_days
+                else 0
+            )
 
         total_minutes = 0
 
-        if start.weekday() < 5:
+        if start.weekday() < working_days:
             end_of_start_day = start_midnight + DateOffset(days=1)
             total_minutes += (end_of_start_day - start).total_seconds() / 60
 
-        if end.weekday() < 5:
+        if end.weekday() < working_days:
             total_minutes += (end - end_midnight).total_seconds() / 60
 
         full_business_days = busday_count(start_midnight.date(), end_midnight.date())
 
-        if start.weekday() < 5:
+        if start.weekday() < working_days:
             full_business_days -= 1
 
         if full_business_days > 0:
@@ -128,50 +135,52 @@ class TransformationTools:
     @staticmethod
     def clean_postal_codes(postal_codes: Series, country_codes: Series) -> Series:
         """
-        Cleans and validates postal codes in a Series according to country-specific regex patterns.
+        Cleans and validates postal codes in a Series according to
+        country-specific regex patterns.
         """
 
         # Precompiled country-specific postal code regex patterns
         postal_code_patterns = {
-            "CA": compile(r"^[A-Z]\d[A-Z]\d[A-Z]\d$"),
-            "GB": compile(r"^(GIR0AA|[A-Z]{1,2}\d{1,2}[A-Z]?\d[A-Z]{2})$"),
-            "US": compile(r"^\d{5}(\d{4})?$"),
-            "FR": compile(r"^\d{5}$"),
-            "DE": compile(r"^\d{5}$"),
-            "ES": compile(r"^\d{5}$"),
-            "FI": compile(r"^\d{5}$"),
-            "EE": compile(r"^\d{5}$"),
-            "SE": compile(r"^\d{5}$"),
-            "CZ": compile(r"^\d{5}$"),
-            "PL": compile(r"^\d{5}$"),
-            "NL": compile(r"^\d{4}[A-Z]{2}$"),
-            "DK": compile(r"^\d{4}$"),
-            "AT": compile(r"^\d{4}$"),
-            "BE": compile(r"^\d{4}$"),
-            "CH": compile(r"^\d{4}$"),
-            "NO": compile(r"^\d{4}$"),
-            "LU": compile(r"^\d{4}$"),
-            "HU": compile(r"^\d{4}$"),
-            "IE": compile(r"^[A-Z0-9]{7}$"),
-            "IT": compile(r"^\d{5}$"),
-            "MX": compile(r"^\d{5}$"),
-            "ZA": compile(r"^\d{5}$"),
-            "MY": compile(r"^\d{5}$"),
-            "TH": compile(r"^\d{5}$"),
-            "PT": compile(r"^\d{7}$"),
-            "AU": compile(r"^\d{4}$"),
-            "NZ": compile(r"^\d{4}$"),
-            "PH": compile(r"^\d{4}$"),
-            "JP": compile(r"^\d{7}$"),
-            "KR": compile(r"^\d{5}$"),
-            "SG": compile(r"^\d{6}$"),
-            "GG": compile(r"^GY\d{1,2}[A-Z]{2}$"),
-            "JE": compile(r"^JE\d{1,2}[A-Z]{2}$"),
-            "IM": compile(r"^IM\d{1,2}[A-Z]{2}$"),
-            "IS": compile(r"^\d{3}$"),
+            "CA": re_compile(r"^[A-Z]\d[A-Z]\d[A-Z]\d$"),
+            "GB": re_compile(r"^(GIR0AA|[A-Z]{1,2}\d{1,2}[A-Z]?\d[A-Z]{2})$"),
+            "US": re_compile(r"^\d{5}(\d{4})?$"),
+            "FR": re_compile(r"^\d{5}$"),
+            "DE": re_compile(r"^\d{5}$"),
+            "ES": re_compile(r"^\d{5}$"),
+            "FI": re_compile(r"^\d{5}$"),
+            "EE": re_compile(r"^\d{5}$"),
+            "SE": re_compile(r"^\d{5}$"),
+            "CZ": re_compile(r"^\d{5}$"),
+            "PL": re_compile(r"^\d{5}$"),
+            "NL": re_compile(r"^\d{4}[A-Z]{2}$"),
+            "DK": re_compile(r"^\d{4}$"),
+            "AT": re_compile(r"^\d{4}$"),
+            "BE": re_compile(r"^\d{4}$"),
+            "CH": re_compile(r"^\d{4}$"),
+            "NO": re_compile(r"^\d{4}$"),
+            "LU": re_compile(r"^\d{4}$"),
+            "HU": re_compile(r"^\d{4}$"),
+            "IE": re_compile(r"^[A-Z0-9]{7}$"),
+            "IT": re_compile(r"^\d{5}$"),
+            "MX": re_compile(r"^\d{5}$"),
+            "ZA": re_compile(r"^\d{5}$"),
+            "MY": re_compile(r"^\d{5}$"),
+            "TH": re_compile(r"^\d{5}$"),
+            "PT": re_compile(r"^\d{7}$"),
+            "AU": re_compile(r"^\d{4}$"),
+            "NZ": re_compile(r"^\d{4}$"),
+            "PH": re_compile(r"^\d{4}$"),
+            "JP": re_compile(r"^\d{7}$"),
+            "KR": re_compile(r"^\d{5}$"),
+            "SG": re_compile(r"^\d{6}$"),
+            "GG": re_compile(r"^GY\d{1,2}[A-Z]{2}$"),
+            "JE": re_compile(r"^JE\d{1,2}[A-Z]{2}$"),
+            "IM": re_compile(r"^IM\d{1,2}[A-Z]{2}$"),
+            "IS": re_compile(r"^\d{3}$"),
         }
 
-        # Standardize postal codes: remove non-alphanumeric characters, uppercase, and trim
+        # Standardize postal codes: remove non-alphanumeric characters,
+        # convert to uppercase, and trim whitespace
         postal_codes = (
             postal_codes.astype(str)
             .str.replace(r"[^0-9A-Za-z]", "", regex=True)

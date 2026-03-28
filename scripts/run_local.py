@@ -16,30 +16,24 @@ sys.path.insert(0, str(SRC_DIR))
 # --- Configuration -------------------------------------------------------
 
 CATEGORY_LABELS: dict[str, str] = {
-    "c": "Chatbot",
     "e": "Extract",
     "d": "Dimension",
     "f": "Fact",
-    "p": "Pricing",
 }
 
 # Subdirectories to scan, mapped to their menu key prefix and groups
 CATEGORY_SUBDIRS: dict[str, tuple[str, list[str]]] = {
-    "chatbot": ("c", []),
     "data_extraction": ("e", ["g_all_extract"]),
     "dimensions": ("d", ["g_all_dims", "g_all_dwh"]),
     "facts": ("f", ["g_all_facts", "g_all_dwh"]),
-    "pricing": ("p", []),
 }
 
 # Prefixes/suffixes stripped from file stems to generate short menu keys.
 # Longer prefixes must come first so they take priority.
 STEM_STRIP: dict[str, tuple[list[str], list[str]]] = {
-    "chatbot": ([], []),
     "data_extraction": (["tmp_"], ["_extract"]),
     "dimensions": (["scd_", "sd_", "rpd_"], []),
     "facts": (["fact_model_config_", "fact_"], []),
-    "pricing": (["model_"], []),
 }
 
 # Path to the DAG doc (sibling repo). Order falls back to alphabetical if not found.
@@ -127,7 +121,7 @@ def _shorten_stem(stem: str, subdir: str) -> str:
     prefixes, suffixes = STEM_STRIP.get(subdir, ([], []))
     for p in prefixes:
         if stem.startswith(p):
-            stem = stem[len(p):]
+            stem = stem[len(p) :]
             break
     for s in suffixes:
         if stem.endswith(s):

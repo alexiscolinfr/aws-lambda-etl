@@ -146,11 +146,10 @@ src/
 │   ├── transformation_tools.py
 │   └── enums/                 # LoadingMethod, OutputDestination, Status
 ├── pipes/                     # Pipeline implementations
-│   ├── chatbot/
 │   ├── data_extraction/
+│   │   └── current_inventory_extract.py
 │   ├── dimensions/
-│   ├── facts/
-│   └── pricing/
+│   └── facts/
 └── static/
     ├── data/                  # JSON model/config files
     ├── ddl/                   # SQL DDL scripts (applied via apply_static_ddl.py)

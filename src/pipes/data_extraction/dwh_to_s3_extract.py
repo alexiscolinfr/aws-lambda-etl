@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Dict
+from datetime import UTC, datetime, timedelta
 
 from pandas import DataFrame, merge, read_sql
 
@@ -13,14 +12,10 @@ from common.pipe import Pipe
 
 @dataclass
 class DWHToS3ExtractParameters:
-    min_date: str = (
-        (datetime.now(timezone.utc) - timedelta(days=7)).date().strftime("%Y-%m-%d")
-    )
-    max_date: str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+    min_date: str = (datetime.now(UTC) - timedelta(days=7)).date().strftime("%Y-%m-%d")
+    max_date: str = datetime.now(UTC).date().strftime("%Y-%m-%d")
     s3_bucket: str = "dwh-extracts"
-    s3_key: str = (
-        f"files/dwh_export_{datetime.now(timezone.utc).date().strftime('%Y-%m-%d')}.csv"
-    )
+    s3_key: str = f"files/dwh_export_{datetime.now(UTC).date().strftime('%Y-%m-%d')}.csv"
 
 
 class DWHToS3Extract(Pipe):
@@ -38,7 +33,7 @@ class DWHToS3Extract(Pipe):
     @staticmethod
     def extract(
         parameters: DWHToS3ExtractParameters,
-    ) -> Dict[str, DataFrame]:
+    ) -> dict[str, DataFrame]:
 
         sales_query = """-- sql
             SELECT
@@ -73,7 +68,6 @@ class DWHToS3Extract(Pipe):
         """
 
         with Database(CONNECTIONS["data_warehouse"]) as db:
-
             return {
                 "sales": read_sql(
                     sales_query,
@@ -95,7 +89,7 @@ class DWHToS3Extract(Pipe):
 
     @staticmethod
     def transform(
-        data: Dict[str, DataFrame], parameters: DWHToS3ExtractParameters
+        data: dict[str, DataFrame], _parameters: DWHToS3ExtractParameters
     ) -> DataFrame:
 
         df_sales = data["sales"]

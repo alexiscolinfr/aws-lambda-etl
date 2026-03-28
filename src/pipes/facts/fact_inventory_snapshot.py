@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Dict
+from datetime import UTC, datetime
 
 from numpy import nan
 from pandas import DataFrame, read_sql
@@ -68,7 +67,7 @@ class FactInventorySnapshot(Pipe):
     )
 
     @staticmethod
-    def extract(parameters: FactInventorySnapshotParameters) -> Dict[str, DataFrame]:
+    def extract(_parameters: FactInventorySnapshotParameters) -> dict[str, DataFrame]:
 
         stock_query = """-- sql
             SELECT
@@ -120,7 +119,7 @@ class FactInventorySnapshot(Pipe):
 
     @staticmethod
     def transform(
-        data: Dict[str, DataFrame], parameters: FactInventorySnapshotParameters
+        data: dict[str, DataFrame], _parameters: FactInventorySnapshotParameters
     ) -> DataFrame:
 
         df_inventory = data["stock"].merge(
@@ -129,16 +128,14 @@ class FactInventorySnapshot(Pipe):
             how="left",
         )
 
-        df_inventory = df_inventory.assign(
-            date_id=int(datetime.now(timezone.utc).date().strftime("%Y%m%d")),
+        return df_inventory.assign(
+            date_id=int(datetime.now(UTC).date().strftime("%Y%m%d")),
             avg_unit_cost=lambda df: (
                 df["total_cost"].div(df["total_qty"].replace(0, nan)).round(2).fillna(0)
             ),
             total_cost=lambda df: (df["avg_unit_cost"] * df["available_qty"]).round(2),
             total_value=lambda df: (df["unit_price"] * df["available_qty"]).round(2),
         ).rename(columns={"available_qty": "quantity"})
-
-        return df_inventory
 
 
 handle = FactInventorySnapshot()

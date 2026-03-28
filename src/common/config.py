@@ -5,6 +5,7 @@ from sqlalchemy import MetaData
 
 from common.database import Connection, DatabaseSystem
 
+
 load_dotenv()
 
 CONNECTIONS = {
