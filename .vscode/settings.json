@@ -1,22 +1,30 @@
 {
   "python.terminal.activateEnvironment": true,
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
   "cSpell.words": [
-    "chunksize",
+    "dataclass",
     "dataframe",
     "dotenv",
-    "dtype",
+    "dropna",
     "fillna",
-    "getsizeof",
     "isin",
     "isna",
-    "iterrows",
     "notna",
-    "postalcode",
-    "pulumi",
-    "relativedelta",
     "sqlalchemy",
-    "titlecase",
     "venv",
     "virtualenv"
+  ],
+  "python-envs.pythonProjects": [
+    {
+      "envManager": "astral-sh.uv:uv",
+      "packageManager": "astral-sh.uv:uv"
+    }
   ]
 }

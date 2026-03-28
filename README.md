@@ -1,8 +1,6 @@
 # AWS Lambda ETL
 
-This repository implements a small, opinionated framework for building and running ETL pipes — modular extraction, transformation and load units that can run locally, in CI, or as AWS Lambda functions.
-
-The core abstraction is the Pipe base class. Concrete pipes implement only a few methods, while the base class handles lifecycle, logging, connection management and standard loading behaviors.
+> Collection of data ETL pipelines deployed as AWS Lambda functions.
 
 ## Architecture overview
 
@@ -35,85 +33,207 @@ flowchart TB
     load -- insert --> file
 ```
 
-## Prerequisites
+---
 
-- Python 3.12+
+## Getting started
+
+### Prerequisites
+
+- [Python 3.12+](https://www.python.org/downloads/)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 
-## Local setup
-
-Create a virtual environment for the project
+### Setup
 
 ```bash
-# Create virtual env
-python -m venv .venv
-# Switch to venv
-source .venv/bin/activate
-# Install dependencies
-pip install -r src/requirements.txt
-# Load required static tables
-python ./src/load_static.py
+# Install dependencies and create virtual environment
+uv sync
+
+# Install pre-commit hooks
+uv run pre-commit install
+
+# Copy and fill in environment variables
+cp .env.example .env
 ```
 
-It is also strongly recommended to install the recommended VS Code extensions
+### Apply DDL
 
-## Run API locally
+Create the `pipeline_logs` table and any other DDL defined in `src/static/ddl/`:
 
 ```bash
-# 1. Build
+uv run python scripts/apply_static_ddl.py
+```
+
+---
+
+## Running pipes locally
+
+```bash
+uv run python scripts/run_local.py
+```
+
+An interactive menu lets you select which pipe(s) to run, individually or by group.
+Debug mode redirects output to `.output/<pipe_path>.csv` instead of loading to the database.
+
+## Running the API locally
+
+```bash
 sam build
-# 2. Invoke locally
 sam local invoke MyPipe
-# 3. Run as an API endpoint
+# or as an API endpoint
 sam local start-api --env-vars scripts/sam_local_env.json
 ```
 
-Bear in mind that you need to rebuild anytime there's a code change (`start-api` supports hot reloading so doesn't need to be restarted every time)
+> [!NOTE]
+> You need to rebuild after each code change. `start-api` supports hot reloading and does not need to be restarted.
 
+---
+
+## Development tools
+
+### VS Code extensions
+
+| Extension | Purpose |
+|:---|:---|
+| [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python) | Python language support |
+| [Ruff](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff) | Linting and formatting |
+| [Inline SQL](https://marketplace.visualstudio.com/items?itemName=qufiwefefwoyn.inline-sql-syntax) | SQL syntax highlighting in Python strings |
+| [Code Spell Checker](https://marketplace.visualstudio.com/items?itemName=streetsidesoftware.code-spell-checker) | Spell checking |
+
+### Formatting & linting
+
+This project uses [Ruff](https://docs.astral.sh/ruff/) for formatting and linting. It runs automatically on staged files at each commit via pre-commit.
+
+```bash
+uv run ruff format .        # Format
+uv run ruff check . --fix   # Lint with auto-fix
+
+uv run pre-commit run --all-files  # Run all hooks manually
 ```
-TODO add curl example and postman collection
+
+### Dependency management
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
+
+```bash
+uv add <package>       # Add a runtime dependency
+uv add --dev <package> # Add a dev dependency
+uv sync --upgrade      # Update all dependencies
 ```
+
+After updating dependencies, regenerate the Lambda layer requirements:
+
+```bash
+uv export --no-dev --no-hashes -o layer/requirements.txt
+```
+
+---
 
 ## Development guidelines
 
+### Project structure
+
+```
+src/
+├── common/                    # Shared utilities and base classes
+│   ├── config.py              # Database connections
+│   ├── database.py            # Database connection wrapper
+│   ├── email_sender.py        # SES email sender
+│   ├── exceptions.py          # Custom exceptions
+│   ├── flat_file.py           # FlatFile schema (for S3/email outputs)
+│   ├── json_loader.py         # JSON → DataFrame loader
+│   ├── pipe.py                # Pipe base class
+│   ├── transformation_tools.py
+│   └── enums/                 # LoadingMethod, OutputDestination, Status
+├── pipes/                     # Pipeline implementations
+│   ├── chatbot/
+│   ├── data_extraction/
+│   ├── dimensions/
+│   ├── facts/
+│   └── pricing/
+└── static/
+    ├── data/                  # JSON model/config files
+    ├── ddl/                   # SQL DDL scripts (applied via apply_static_ddl.py)
+    └── templates/             # Email HTML templates
+```
+
 ### Database configurations
 
-Database connections are configured in the `CONNECTIONS` global variable from `src.common.config`.
-Each connection is a instance of the `common.database.Connection` dataclass.
-Default values should be provided and should be the values for local development.
+Database connections are configured in the `CONNECTIONS` global variable from `common.config`. Each connection is an instance of the `common.database.Connection` dataclass. Default values should be the values for local development.
 
 ### Pipe definition
 
-Each pipe should be a class inheriting from the `src.common.pipe.Pipe` base class.
-That base class provides a lot of the boilerplate for extracting and loading the data as well as basic logging.
-When writing a pipe, you'll mostly be overriding the static and/or abstract methods of the base class as detailed below.
-See docstring for more details on how each method work.
-
-#### Required
-
-The following methods must be defined in each pipe
-
-- `extract`: define how to extract data using SQL queries
-
-#### Optional
-
-- `output_destination`: define the destination of the output (database or S3 bucket)
-- `schema`: define a schema for transformed data (Table or FlatFile)
-- `connection`: define connection for loading data, if output destination is a database table
-- `loading_method`: define how to load the data, if output destination is a database table
-- `transform`: define how to transform the data
-
-### Querying a database
-
-It is important to use `with` clauses when querying the database to avoid leaving open connections (for instance in `extract` or `load` methods)
+Each pipe is a class inheriting from `common.pipe.Pipe`. The base class handles ETL orchestration, logging, error handling, and the Lambda entrypoint — you only need to define the data-specific parts.
 
 ```python
-with MySQL(CONNECTIONS["connection_name"]) as db:
-    db.execute(text("""-- sql
-            SELECT * FROM table_name
-        """))
+@dataclass
+class MyPipeParameters:
+    # Parameters passed via the Lambda event body (JSON)
+    my_param: str = "default_value"
+
+
+class MyPipe(Pipe):
+    parameter_class = MyPipeParameters
+    output_destination = OutputDestination.DATABASE
+    connection = CONNECTIONS["data_warehouse"]
+    loading_method = LoadingMethod.DROP_INSERT
+    schema = Table(
+        "my_table",
+        connection.metadata,
+        Column("id", Integer, primary_key=True),
+        Column("name", String(255)),
+    )
+
+    @staticmethod
+    def extract(parameters: MyPipeParameters) -> dict[str, DataFrame]:
+        with Database(CONNECTIONS["erp"]) as db:
+            return {"data": db.execute(text("SELECT ..."))}
+
+    @staticmethod
+    def transform(data: dict[str, DataFrame], parameters: MyPipeParameters) -> DataFrame:
+        # Optional — omit if no transformation needed
+        return data["data"]
+
+
+handle = MyPipe()
 ```
 
-### Maintenance
+#### Class attributes
 
-To update dependencies, you can use [`pip-review`](https://github.com/jgonggrijp/pip-review): `pip-review --local --interactive`
+| Attribute | Required | Description |
+|:---|:---:|:---|
+| `parameter_class` | ✅ | Dataclass defining the pipe's input parameters |
+| `output_destination` | ✅ | `DATABASE`, `S3`, `EMAIL`, or `S3_EMAIL` |
+| `schema` | ✅ | SQLAlchemy `Table` or `FlatFile` |
+| `connection` | If DATABASE | Target database connection |
+| `loading_method` | If DATABASE | `DROP_INSERT`, `TRUNCATE_INSERT`, or `INSERT` |
+
+#### Methods
+
+| Method | Required | Description |
+|:---|:---:|:---|
+| `extract` | ✅ | Fetch raw data — returns `dict[str, DataFrame]` |
+| `transform` | ➖ | Transform extracted data — returns `DataFrame` |
+
+### Adding a new pipe
+
+1. Create a file in the appropriate `src/pipes/<category>/` subdirectory
+2. Define the parameters dataclass and pipe class (see template above)
+3. Add the corresponding Lambda function to `template.yaml`
+
+### Updating the local database
+
+Mirror production tables locally via SSH tunnel:
+
+```bash
+# Sync all configured tables for a system
+uv run python scripts/update_local_db.py --system dwh
+
+# Sync a named group only
+uv run python scripts/update_local_db.py --system dwh --group dim_tables
+
+# Sync specific tables
+uv run python scripts/update_local_db.py --system erp --tables orders products
+```
+
+Table groups are defined in `scripts/migration_tables.toml`.

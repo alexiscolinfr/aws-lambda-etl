@@ -28,6 +28,22 @@ Globals:
 Resources:
 
   # ================================
+  # Shared dependencies layer
+  # ================================
+
+  DependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: aws-lambda-etl-dependencies
+      ContentUri: ./layer
+      CompatibleRuntimes:
+        - python3.12
+      CompatibleArchitectures:
+        - arm64
+    Metadata:
+      BuildMethod: python3.12
+
+  # ================================
   # Dimension table pipes
   # ================================
 
@@ -40,6 +56,8 @@ Resources:
       Timeout: 300
       Policies:
         - AWSLambdaVPCAccessExecutionRole
+      Layers:
+        - !Ref DependenciesLayer
       VpcConfig:
         SubnetIds:
           - subnet-a123a123
@@ -67,6 +85,8 @@ Resources:
             ScheduleExpression: cron(0 6 * * ? *)
       Policies:
         - AWSLambdaVPCAccessExecutionRole
+      Layers:
+        - !Ref DependenciesLayer
       VpcConfig:
         SubnetIds:
           - subnet-a123a123
@@ -104,6 +124,8 @@ Resources:
               Resource:
                 - arn:aws:s3:::dwh-extracts
                 - arn:aws:s3:::dwh-extracts/*
+      Layers:
+        - !Ref DependenciesLayer
       VpcConfig:
         SubnetIds:
           - subnet-a123a123

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Export Available</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#0f172a;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;visibility:hidden;">Reporting Pipeline: your data export is attached to this email.</div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:28px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="620" cellspacing="0" cellpadding="0" style="width:100%;max-width:620px;background:#ffffff;border:1px solid #dbe4ee;border-radius:12px;">
+          <tr>
+            <td bgcolor="#0f172a" style="padding:20px 24px;background-color:#0f172a;background-image:linear-gradient(120deg,#0f172a,#1e293b);border-radius:12px 12px 0 0;">
+              <p style="margin:0;font-size:12px;line-height:1.4;letter-spacing:0.08em;text-transform:uppercase;color:#93c5fd;">Reporting Pipeline</p>
+              <p style="margin:6px 0 0 0;font-size:22px;line-height:1.3;font-weight:700;color:#ffffff;">Data Export Available</p>
+              <span style="display:inline-block;margin-top:10px;padding:4px 10px;border-radius:999px;background:#dbeafe;color:#1e3a8a;font-size:12px;line-height:1.2;font-weight:700;">{category}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px;">
+              <p style="margin:0 0 12px 0;font-size:15px;line-height:1.7;color:#334155;">Hello,</p>
+              <p style="margin:0 0 18px 0;font-size:15px;line-height:1.7;color:#334155;">Your export <strong style="color:#0f172a;">{export_name}</strong> is attached to this email.</p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 18px 0;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;">
+                <tr>
+                  <td style="padding:14px 16px;font-size:13px;line-height:1.6;color:#0f172a;">
+                    <strong style="display:block;margin-bottom:6px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;">Export Details</strong>
+                    <span style="display:block;"><strong>Brands:</strong> {brands}</span>
+                    {date_range_block}
+                    <span style="display:block;"><strong>Rows:</strong> {row_count}</span>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 18px 0;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;">
+                <tr>
+                  <td style="padding:12px 14px;font-size:13px;line-height:1.5;color:#0f172a;">
+                    <span style="display:block;margin-bottom:4px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.04em;">Attachment</span>
+                    <span style="font-weight:600;">{attachment_name} <span style="font-weight:400;color:#64748b;">({file_size})</span></span>
+                    <span style="display:block;margin-top:4px;font-size:12px;line-height:1.4;color:#64748b;">Compressed format (<strong>.gz</strong>): decompress once to access the file.</span>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 4px 0;font-size:14px;line-height:1.7;color:#475569;">
+                Questions? Please contact the <strong>Data Team</strong> at
+                <a href="mailto:data@company.com" style="color:#1e3a8a;text-decoration:underline;">data@company.com</a>.
+              </p>
+              <p style="margin:0;font-size:14px;line-height:1.7;color:#475569;">Regards,<br />Data Team</p>
+            </td>
+          </tr>
+        </table>
+
+        <table role="presentation" width="620" cellspacing="0" cellpadding="0" style="width:100%;max-width:620px;">
+          <tr>
+            <td style="padding:14px 8px 0 8px;font-size:12px;line-height:1.6;color:#64748b;text-align:center;">
+              <span style="display:block;">© {year} Company. All rights reserved.</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

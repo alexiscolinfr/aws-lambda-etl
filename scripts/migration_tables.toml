@@ -1,0 +1,28 @@
+[dwh]
+tables = [
+    "dim_date",
+    "dim_market",
+    "dim_product",
+    "dim_customer",
+    "fact_inventory_snapshot",
+    "fact_sales",
+]
+dim_tables = [
+    "dim_date",
+    "dim_market",
+    "dim_product",
+    "dim_customer",
+]
+fact_tables = [
+    "fact_inventory_snapshot",
+    "fact_sales",
+]
+
+[erp]
+tables = [
+    "orders",
+    "order_items",
+    "products",
+    "customers",
+    "warehouses",
+]
